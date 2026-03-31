@@ -1,100 +1,177 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  StatusBar,
+} from 'react-native';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
-import Nativewind from "@/components/ui/nativewind";
-
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }: any) {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <View className="flex-1 bg-[#F2F0EA]">
+      <StatusBar barStyle="dark-content" backgroundColor="#F2F0EA" />
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-      <Nativewind />
-    </ParallaxScrollView>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-5 pt-12 pb-2">
+        <View className="flex-row items-center gap-2">
+          <MaterialCommunityIcons name="leaf" size={20} color="#2D4A2D" />
+          <Text className="text-[#2D4A2D] text-base font-semibold tracking-tight">
+            Intervene
+          </Text>
+        </View>
+        <TouchableOpacity>
+          <Feather name="search" size={20} color="#2D4A2D" />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+        {/* Welcome */}
+        <View className="px-5 pt-6 pb-4 flex-row items-start justify-between">
+          <View className="flex-1">
+            <Text className="text-[#1C1C1C] text-4xl font-light leading-tight">
+              Welcome back{'\n'}to your{' '}
+              <Text className="italic font-light">quiet</Text>
+            </Text>
+            <Text className="text-[#1C1C1C] text-4xl font-light">space.</Text>
+          </View>
+          <View className="items-end pt-2">
+            <Text className="text-[#6B6B6B] text-xs tracking-widest">DAY 14</Text>
+            <Text className="text-[#6B6B6B] text-xs tracking-wide">Mindful</Text>
+            <Text className="text-[#6B6B6B] text-xs tracking-wide">Streak</Text>
+          </View>
+        </View>
+
+        {/* Hero Image Card */}
+        <View className="mx-5 rounded-2xl overflow-hidden h-44">
+          <View className="absolute inset-0 bg-[#C4A882]" />
+          {/* Layered mountain silhouettes */}
+          <View className="absolute bottom-0 left-0 right-0 h-24 bg-[#8B6914] opacity-40 rounded-t-[60px]" />
+          <View className="absolute bottom-0 left-0 right-0 h-16 bg-[#5C3D11] opacity-60 rounded-t-[80px]" />
+          <View className="absolute bottom-0 left-0 right-0 h-10 bg-[#2D1810] opacity-80 rounded-t-[100px]" />
+          <View className="absolute bottom-4 left-4">
+            <Text className="text-white/70 text-xs tracking-widest mb-1">CURRENT FOCUS</Text>
+            <Text className="text-white text-2xl font-semibold">Digital Silence</Text>
+          </View>
+        </View>
+
+        {/* Today's Pulse */}
+        <View className="px-5 mt-6">
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-[#1C1C1C] text-xl font-semibold">Today's Pulse</Text>
+            <View className="bg-[#E8F0E8] px-3 py-1 rounded-full">
+              <Text className="text-[#2D4A2D] text-xs font-medium">-22% vs yesterday</Text>
+            </View>
+          </View>
+
+          {/* Screen Intent Card */}
+          <View className="bg-white rounded-2xl p-4 mb-3">
+            <Text className="text-[#8A8A8A] text-xs tracking-widest mb-2">SCREEN INTENT</Text>
+            <Text className="text-[#1C1C1C] text-5xl font-light">2h 14m</Text>
+            <View className="flex-row items-center justify-between mt-2">
+              <Text className="text-[#6B6B6B] text-sm">You've reached for your{'\n'}device 45 times today.</Text>
+              <Ionicons name="bar-chart-outline" size={24} color="#C8C8C8" />
+            </View>
+          </View>
+
+          {/* Bottom Stats Row */}
+          <View className="flex-row gap-3 mb-3">
+            <View className="flex-1 bg-[#EBEBEB] rounded-2xl p-4">
+              <View className="w-8 h-8 rounded-full bg-[#D0D0D0] items-center justify-center mb-3">
+                <Ionicons name="remove" size={18} color="#555" />
+              </View>
+              <Text className="text-[#8A8A8A] text-xs tracking-widest mb-1">FRICTION{'\n'}ACTIVE</Text>
+              <Text className="text-[#1C1C1C] text-2xl font-semibold">12 Apps</Text>
+            </View>
+            <View className="flex-1 bg-[#F5E6D0] rounded-2xl p-4">
+              <View className="w-8 h-8 rounded-full bg-[#E8C898] items-center justify-center mb-3">
+                <MaterialCommunityIcons name="head-cog-outline" size={18} color="#7A5C2E" />
+              </View>
+              <Text className="text-[#8A8A8A] text-xs tracking-widest mb-1">RESISTED URGES</Text>
+              <Text className="text-[#1C1C1C] text-2xl font-semibold">8 times</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Design Your Boundaries CTA */}
+        <View className="mx-5 mt-2 bg-[#1C2B1C] rounded-3xl p-6">
+          <Text className="text-white text-2xl font-semibold mb-2">Design your boundaries.</Text>
+          <Text className="text-white/60 text-sm leading-relaxed mb-5">
+            Introduce intentional pauses to your most distracting apps. Choose between breathwork, reflection, or simple delays.
+          </Text>
+          <TouchableOpacity
+            className="bg-[#2D4A2D] rounded-full py-3 px-6 flex-row items-center justify-center gap-2"
+            onPress={() => navigation?.navigate('Interventions')}
+          >
+            <Text className="text-white text-base font-medium">Configure Interventions</Text>
+            <Text className="text-white text-base">→</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Reflections */}
+        <View className="px-5 mt-6 mb-4">
+          <Text className="text-[#1C1C1C] text-xl font-semibold mb-4">Reflections</Text>
+
+          <View className="flex-row items-start gap-3 mb-5">
+            <View className="w-10 h-10 bg-[#EBEBEB] rounded-xl items-center justify-center">
+              <MaterialCommunityIcons name="meditation" size={20} color="#555" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[#1C1C1C] text-sm font-semibold mb-1">10:45 AM — Mindfulness Gap</Text>
+              <Text className="text-[#6B6B6B] text-sm leading-relaxed">
+                You paused for 30 seconds before opening Instagram. Decided to read a book instead.
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row items-start gap-3">
+            <View className="w-10 h-10 bg-[#EBEBEB] rounded-xl items-center justify-center">
+              <Ionicons name="time-outline" size={20} color="#555" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-[#1C1C1C] text-sm font-semibold mb-1">08:12 AM — Wake Up Routine</Text>
+              <Text className="text-[#6B6B6B] text-sm leading-relaxed">
+                First device interaction occurred 45 minutes after waking up. Peaceful start.
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View className="h-24" />
+      </ScrollView>
+
+      {/* Floating pause button */}
+      <View className="absolute bottom-20 right-5">
+        <TouchableOpacity className="w-12 h-12 bg-[#1C2B1C] rounded-full items-center justify-center shadow-lg">
+          <Ionicons name="pause" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Bottom Nav */}
+      <View className="absolute bottom-0 left-0 right-0 bg-[#F2F0EA] border-t border-[#E0DDD7] flex-row items-center justify-around px-6 py-3 pb-6">
+        <TouchableOpacity className="items-center">
+          <View className="bg-[#2D4A2D] rounded-full px-5 py-2">
+            <Ionicons name="home" size={20} color="white" />
+          </View>
+          <Text className="text-[#2D4A2D] text-xs mt-1 font-semibold tracking-widest">HOME</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="items-center"
+          onPress={() => navigation?.navigate('Interventions')}
+        >
+          <Feather name="activity" size={22} color="#9A9A9A" />
+          <Text className="text-[#9A9A9A] text-xs mt-1 tracking-widest">INTERVENTIONS</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          className="items-center"
+          onPress={() => navigation?.navigate('Settings')}
+        >
+          <Ionicons name="settings-outline" size={22} color="#9A9A9A" />
+          <Text className="text-[#9A9A9A] text-xs mt-1 tracking-widest">SETTINGS</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});

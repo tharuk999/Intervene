@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { NativeModules, Platform, StyleSheet } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -9,6 +9,9 @@ import { Link } from 'expo-router';
 import Nativewind from "@/components/ui/nativewind";
 
 export default function HomeScreen() {
+    const CalendarModule = NativeModules.CalendarModule;
+    CalendarModule.createCalendarEvent("Tharuk", "gay");
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}

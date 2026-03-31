@@ -8,6 +8,8 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { NavBar } from '@/components/navbar';
 
 interface InterventionItem {
   id: string;
@@ -278,10 +280,10 @@ export default function InterventionSetupScreen({ navigation }: any) {
       </ScrollView>
 
       {/* Bottom Nav */}
-      <View className="absolute bottom-0 left-0 right-0 bg-[#F2F0EA] border-t border-[#E0DDD7] flex-row items-center justify-around px-6 py-3 pb-6">
+      {/* <View className="absolute bottom-0 left-0 right-0 bg-[#F2F0EA] border-t border-[#E0DDD7] flex-row items-center justify-around px-6 py-3 pb-6">
         <TouchableOpacity
           className="items-center"
-          onPress={() => navigation?.navigate('Home')}
+          onPress={() => router.push('/')}
         >
           <Ionicons name="home-outline" size={22} color="#9A9A9A" />
           <Text className="text-[#9A9A9A] text-xs mt-1 tracking-widest">HOME</Text>
@@ -293,12 +295,13 @@ export default function InterventionSetupScreen({ navigation }: any) {
         </TouchableOpacity>
         <TouchableOpacity
           className="items-center"
-          onPress={() => navigation?.navigate('Settings')}
+          onPress={() => router.push('/settings')}
         >
           <Ionicons name="settings-outline" size={22} color="#9A9A9A" />
           <Text className="text-[#9A9A9A] text-xs mt-1 tracking-widest">SETTINGS</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
+      <NavBar/>
     </View>
   );
 }

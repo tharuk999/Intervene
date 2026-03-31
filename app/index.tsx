@@ -4,12 +4,13 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   StatusBar,
 } from 'react-native';
+import { router } from 'expo-router';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { NavBar } from '@/components/navbar';
 
-export default function HomeScreen({ navigation }: any) {
+export default function HomeScreen() {
   return (
     <View className="flex-1 bg-[#F2F0EA]">
       <StatusBar barStyle="dark-content" backgroundColor="#F2F0EA" />
@@ -47,7 +48,6 @@ export default function HomeScreen({ navigation }: any) {
         {/* Hero Image Card */}
         <View className="mx-5 rounded-2xl overflow-hidden h-44">
           <View className="absolute inset-0 bg-[#C4A882]" />
-          {/* Layered mountain silhouettes */}
           <View className="absolute bottom-0 left-0 right-0 h-24 bg-[#8B6914] opacity-40 rounded-t-[60px]" />
           <View className="absolute bottom-0 left-0 right-0 h-16 bg-[#5C3D11] opacity-60 rounded-t-[80px]" />
           <View className="absolute bottom-0 left-0 right-0 h-10 bg-[#2D1810] opacity-80 rounded-t-[100px]" />
@@ -103,7 +103,7 @@ export default function HomeScreen({ navigation }: any) {
           </Text>
           <TouchableOpacity
             className="bg-[#2D4A2D] rounded-full py-3 px-6 flex-row items-center justify-center gap-2"
-            onPress={() => navigation?.navigate('Interventions')}
+            onPress={() => router.push('/interventions')}
           >
             <Text className="text-white text-base font-medium">Configure Interventions</Text>
             <Text className="text-white text-base">→</Text>
@@ -150,28 +150,7 @@ export default function HomeScreen({ navigation }: any) {
       </View>
 
       {/* Bottom Nav */}
-      <View className="absolute bottom-0 left-0 right-0 bg-[#F2F0EA] border-t border-[#E0DDD7] flex-row items-center justify-around px-6 py-3 pb-6">
-        <TouchableOpacity className="items-center">
-          <View className="bg-[#2D4A2D] rounded-full px-5 py-2">
-            <Ionicons name="home" size={20} color="white" />
-          </View>
-          <Text className="text-[#2D4A2D] text-xs mt-1 font-semibold tracking-widest">HOME</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className="items-center"
-          onPress={() => navigation?.navigate('Interventions')}
-        >
-          <Feather name="activity" size={22} color="#9A9A9A" />
-          <Text className="text-[#9A9A9A] text-xs mt-1 tracking-widest">INTERVENTIONS</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          className="items-center"
-          onPress={() => navigation?.navigate('Settings')}
-        >
-          <Ionicons name="settings-outline" size={22} color="#9A9A9A" />
-          <Text className="text-[#9A9A9A] text-xs mt-1 tracking-widest">SETTINGS</Text>
-        </TouchableOpacity>
-      </View>
+      <NavBar/>
     </View>
   );
 }

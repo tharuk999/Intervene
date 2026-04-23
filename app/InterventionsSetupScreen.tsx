@@ -12,11 +12,11 @@ import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { NavBar } from '@/components/navbar';
 import {
-    useInteractOutApi,
+    useInterveneApi,
     AppProfile,
     InterventionConfig,
     InterventionType,
-} from '@/hooks/useInteractOutApi';
+} from '@/hooks/useInterveneApi';
 
 // ─── Display metadata for each intervention type ─────────────────────────────
 const INTERVENTION_META: Record<InterventionType, {
@@ -80,12 +80,12 @@ const INTERVENTION_META: Record<InterventionType, {
 
 function formatIntensityLabel(type: InterventionType, intensity: number): string {
     switch (type) {
-        case 'TAP_DELAY':       return `${Math.round(intensity * 800)}ms`;
-        case 'TAP_PROLONG':     return `${(intensity * 1.5).toFixed(1)}s`;
-        case 'TAP_SHIFT':       return `${Math.round(intensity * 60)}px`;
-        case 'SWIPE_DELAY':     return `${Math.round(intensity * 600)}ms`;
-        case 'SWIPE_DECELERATE':return `${(1 + intensity * 3).toFixed(1)}x`;
-        default:                return '';
+        case 'TAP_DELAY':        return `${Math.round(intensity * 800)}ms`;
+        case 'TAP_PROLONG':      return `${(intensity * 1.5).toFixed(1)}s`;
+        case 'TAP_SHIFT':        return `${Math.round(intensity * 60)}px`;
+        case 'SWIPE_DELAY':      return `${Math.round(intensity * 600)}ms`;
+        case 'SWIPE_DECELERATE': return `${(1 + intensity * 3).toFixed(1)}x`;
+        default:                 return '';
     }
 }
 
@@ -93,16 +93,56 @@ function formatIntensityLabel(type: InterventionType, intensity: number): string
 
 export default function InterventionSetupScreen() {
     const { packageName } = useLocalSearchParams<{ packageName: string }>();
-    const { profiles, saveProfile, updateIntensity, loading } = useInteractOutApi();
+    const { fetchActiveProfiles, saveProfile, updateIntensity } = useInterveneApi();
 
-    // Local copy for optimistic UI updates
     const [localProfile, setLocalProfile] = useState<AppProfile | null>(null);
+    const [fetchError, setFetchError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
 
+    // Fetch this profile directly — avoids shared-state race condition
     useEffect(() => {
-        const found = profiles.find(p => p.packageName === packageName);
-        if (found) setLocalProfile(JSON.parse(JSON.stringify(found))); // deep clone
-    }, [profiles, packageName]);
+        if (!packageName) return;
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const res = await fetch(`http://10.0.2.2:8080/api/profiles/${packageName}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const profile: AppProfile = await res.json();
+                if (!cancelled) setLocalProfile(JSON.parse(JSON.stringify(profile)));
+            } catch (e: any) {
+                if (!cancelled) setFetchError(e.message ?? 'Failed to load profile');
+            }
+        })();
+
+        return () => { cancelled = true; };
+    }, [packageName]);
+
+    const { fetchProfile } = useInterveneApi();
+
+    useEffect(() => {
+        if (!packageName) return;
+        fetchProfile(packageName).then(p => {
+            if (p) setLocalProfile(p);
+        });
+    }, [packageName]);
+
+    if (fetchError) {
+        return (
+            <View className="flex-1 bg-[#F2F0EA] items-center justify-center px-8">
+                <Ionicons name="warning-outline" size={40} color="#C0392B" />
+                <Text className="text-[#C0392B] text-base font-semibold mt-3 text-center">
+                    {fetchError}
+                </Text>
+                <TouchableOpacity
+                    className="mt-5 bg-[#2D4A2D] px-6 py-3 rounded-full"
+                    onPress={() => router.back()}
+                >
+                    <Text className="text-white font-semibold">Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
 
     if (!localProfile) {
         return (
@@ -136,7 +176,6 @@ export default function InterventionSetupScreen() {
         });
     };
 
-    // Debounced slider release → push to backend
     const onSliderComplete = async (type: InterventionType, value: number) => {
         await updateIntensity(localProfile.packageName, type, value);
     };
@@ -150,8 +189,8 @@ export default function InterventionSetupScreen() {
 
     const activeCount = localProfile.interventions.filter(i => i.enabled).length;
 
-    // Friction coefficient — simple weighted sum matching paper's heuristic
-    const frictionCoeff = localProfile.interventions
+    const frictionCoeff =
+        localProfile.interventions
             .filter(i => i.enabled)
             .reduce((sum, i) => sum + i.intensity, 0) /
         Math.max(localProfile.interventions.length, 1);

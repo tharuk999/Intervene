@@ -1,5 +1,6 @@
 package com.interactout.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 
 @Entity
@@ -12,6 +13,7 @@ public class InterventionEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "package_name", nullable = false)
+    @JsonBackReference
     private AppProfileEntity profile;
 
     @Enumerated(EnumType.STRING)

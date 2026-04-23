@@ -10,7 +10,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { NavBar } from '@/components/navbar';
-import { useInteractOutApi } from '@/hooks/useInteractOutApi';
+import { useInterveneApi } from '@/hooks/useInterveneApi';
 
 /** Format milliseconds → "2h 14m" */
 function formatMs(ms: number): string {
@@ -22,7 +22,7 @@ function formatMs(ms: number): string {
 }
 
 export default function HomeScreen() {
-    const { dashboard, loading, error, fetchDashboard } = useInteractOutApi();
+    const { dashboard, loading, error, fetchDashboard } = useInterveneApi();
 
     // Refresh every 60s while screen is mounted
     useEffect(() => {

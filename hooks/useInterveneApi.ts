@@ -83,6 +83,16 @@ export function useInterveneApi() {
 
   const refresh = fetchDashboard;
 
+  const fetchProfile = useCallback(async (packageName: string): Promise<AppProfile | null> => {
+    try {
+      const res = await fetch(`${BASE_URL}/profiles/${packageName}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    } catch {
+      return null;
+    }
+  }, []);
+
   // ── Profiles ───────────────────────────────────────────────────────────────
   const fetchProfiles = useCallback(async () => {
     setLoading(true);
@@ -249,6 +259,7 @@ export function useInterveneApi() {
     error,
     refresh,
     fetchDashboard,
+    fetchProfile,
     fetchProfiles,
     fetchActiveProfiles,
     saveProfile,

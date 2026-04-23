@@ -12,11 +12,11 @@ import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { NavBar } from '@/components/navbar';
 import {
-    useInteractOutApi,
+    useInterveneApi,
     AppProfile,
     InterventionConfig,
     InterventionType,
-} from '@/hooks/useInteractOutApi';
+} from '@/hooks/useInterveneApi';
 
 // ─── Display metadata for each intervention type ─────────────────────────────
 const INTERVENTION_META: Record<InterventionType, {
@@ -93,7 +93,7 @@ function formatIntensityLabel(type: InterventionType, intensity: number): string
 
 export default function InterventionSetupScreen() {
     const { packageName } = useLocalSearchParams<{ packageName: string }>();
-    const { profiles, saveProfile, updateIntensity, loading } = useInteractOutApi();
+    const { profiles, saveProfile, updateIntensity, loading } = useInterveneApi();
 
     // Local copy for optimistic UI updates
     const [localProfile, setLocalProfile] = useState<AppProfile | null>(null);

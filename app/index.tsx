@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import * as BackgroundTask from 'expo-background-task';
 import {
     View,
     Text,
@@ -29,6 +30,13 @@ export default function HomeScreen() {
         const id = setInterval(fetchDashboard, 60_000);
         return () => clearInterval(id);
     }, [fetchDashboard]);
+
+    useEffect(() => {
+        // Register background sync (runs every 15min+ when app backgrounded)
+        BackgroundTask.registerTaskAsync('SYNC_USAGE', {
+            minimumInterval: 15, // minutes
+        });
+    }, []);
 
     const screenTime   = dashboard?.totalScreenTimeMs    ?? 0;
     const resisted     = dashboard?.resistedUrges         ?? 0;

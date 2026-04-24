@@ -52,6 +52,9 @@ public class InteractOutAccessibilityService extends AccessibilityService {
     private String currentForegroundPkg = null;
     private long sessionStartMs = 0;
 
+    // Add this static instance field at the top of the class
+    public static InteractOutAccessibilityService instance = null;
+
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
     @Override
@@ -78,9 +81,11 @@ public class InteractOutAccessibilityService extends AccessibilityService {
 
         // Load profiles from backend
         refreshProfiles();
-
+        instance = this;
         Log.d(TAG, "AccessibilityService connected");
     }
+
+
 
     @Override
     public void onDestroy() {
@@ -88,8 +93,11 @@ public class InteractOutAccessibilityService extends AccessibilityService {
         if (gestureServiceBound) {
             unbindService(gestureConnection);
         }
+        instance = null;
         executor.shutdown();
     }
+
+
 
     // ── Event handling ─────────────────────────────────────────────────────────
 
@@ -212,4 +220,13 @@ public class InteractOutAccessibilityService extends AccessibilityService {
             gestureService = null;
         }
     };
+
+    public int getActiveFrictionAppCount() {
+        int count = 0;
+        for (AppProfile p : profileCache.values()) {
+            if (p.isEnabled()) count++;
+        }
+        return count;
+    }
+
 }

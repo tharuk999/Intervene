@@ -1,51 +1,130 @@
-import React, { useEffect } from 'react';
-import * as BackgroundTask from 'expo-background-task';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
     ScrollView,
     TouchableOpacity,
+    TextInput,
     StatusBar,
     ActivityIndicator,
+    NativeModules,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { NavBar } from '@/components/navbar';
-import { useInterveneApi } from '@/hooks/useInterveneApi';
 
-/** Format milliseconds → "2h 14m" */
+const { ProfilesModule } = NativeModules;
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+interface AppEntry {
+    packageName: string;
+    appName: string;
+    usedMs: number;
+    hasProfile: boolean;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function appMeta(packageName: string): { bgColor: string; iconName: string } {
+    if (packageName.includes('instagram')) return { bgColor: '#E8431A', iconName: 'camera' };
+    if (packageName.includes('tiktok'))    return { bgColor: '#1C1C1C', iconName: 'musical-notes' };
+    if (packageName.includes('twitter') || packageName.includes('x.com'))
+        return { bgColor: '#1DA1F2', iconName: 'close' };
+    if (packageName.includes('reddit'))    return { bgColor: '#FF4500', iconName: 'chatbubbles' };
+    if (packageName.includes('youtube'))   return { bgColor: '#FF0000', iconName: 'play' };
+    return { bgColor: '#6B6B6B', iconName: 'apps' };
+}
+
 function formatMs(ms: number): string {
     const h = Math.floor(ms / 3_600_000);
     const m = Math.floor((ms % 3_600_000) / 60_000);
+    if (h === 0 && m === 0) return '';
     if (h === 0) return `${m}m`;
     if (m === 0) return `${h}h`;
     return `${h}h ${m}m`;
 }
 
-export default function HomeScreen() {
-    const { dashboard, loading, error, fetchDashboard } = useInterveneApi();
+// ── Screen ─────────────────────────────────────────────────────────────────────
 
-    // Refresh every 60s while screen is mounted
-    useEffect(() => {
-        const id = setInterval(fetchDashboard, 60_000);
-        return () => clearInterval(id);
-    }, [fetchDashboard]);
+export default function InterventionsScreen() {
+    const [search, setSearch]   = useState('');
+    const [apps, setApps]       = useState<AppEntry[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError]     = useState<string | null>(null);
 
-    useEffect(() => {
-        // Register background sync (runs every 15min+ when app backgrounded)
-        BackgroundTask.registerTaskAsync('SYNC_USAGE', {
-            minimumInterval: 15, // minutes
-        });
+    const loadApps = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const result: AppEntry[] = await ProfilesModule.getAllApps();
+            setApps(result);
+        } catch (e: any) {
+            setError(e?.message ?? 'Failed to load apps');
+            console.warn('getAllApps error:', e);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
-    const screenTime   = dashboard?.totalScreenTimeMs    ?? 0;
-    const resisted     = dashboard?.resistedUrges         ?? 0;
-    const frictionApps = dashboard?.activeFrictionApps    ?? 0;
-    const pctChange    = dashboard?.percentChangeVsYesterday ?? 0;
-    const pctLabel     = pctChange <= 0
-        ? `${Math.abs(pctChange)}% vs yesterday`
-        : `+${pctChange}% vs yesterday`;
-    const pctColor     = pctChange <= 0 ? '#2D4A2D' : '#C0392B';
+    useEffect(() => { loadApps(); }, [loadApps]);
+
+    // Used apps = have usedMs > 0, unused = rest
+    const usedApps   = apps.filter(a => a.usedMs > 0);
+    const unusedApps = apps.filter(a => a.usedMs === 0);
+
+    const filterFn = (a: AppEntry) =>
+        a.appName.toLowerCase().includes(search.toLowerCase()) ||
+        a.packageName.toLowerCase().includes(search.toLowerCase());
+
+    const filteredUsed   = usedApps.filter(filterFn);
+    const filteredUnused = unusedApps.filter(filterFn);
+
+    const renderApp = (app: AppEntry) => {
+        const { bgColor, iconName } = appMeta(app.packageName);
+        const usage = formatMs(app.usedMs);
+        return (
+            <TouchableOpacity
+                key={app.packageName}
+                className={`rounded-2xl px-4 py-4 flex-row items-center mb-3 ${
+                    app.hasProfile ? 'bg-white' : 'bg-[#F0EDE7]'
+                }`}
+                onPress={() => router.push({
+                    pathname: '/intervention-setup',
+                    params: { packageName: app.packageName },
+                })}
+            >
+                <View
+                    className="w-12 h-12 rounded-xl items-center justify-center mr-4"
+                    style={{ backgroundColor: bgColor }}
+                >
+                    <Ionicons name={iconName as any} size={22} color="white" />
+                </View>
+                <View className="flex-1">
+                    <Text className={`text-base font-semibold ${
+                        app.hasProfile ? 'text-[#1C1C1C]' : 'text-[#9A9A9A]'
+                    }`}>
+                        {app.appName}
+                    </Text>
+                    <View className="flex-row items-center gap-2 mt-0.5">
+                        {app.hasProfile && (
+                            <View className="flex-row items-center gap-1">
+                                <View className="w-1.5 h-1.5 rounded-full bg-[#2D4A2D]" />
+                                <Text className="text-[#6B6B6B] text-xs">Friction active</Text>
+                            </View>
+                        )}
+                        {usage !== '' && (
+                            <Text className="text-[#B0B0B0] text-xs">{usage} today</Text>
+                        )}
+                        {!app.hasProfile && usage === '' && (
+                            <Text className="text-[#B0B0B0] text-xs">No friction applied</Text>
+                        )}
+                    </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#C0C0C0" />
+            </TouchableOpacity>
+        );
+    };
 
     return (
         <View className="flex-1 bg-[#F2F0EA]">
@@ -56,175 +135,74 @@ export default function HomeScreen() {
                 <View className="flex-row items-center gap-2">
                     <MaterialCommunityIcons name="leaf" size={20} color="#2D4A2D" />
                     <Text className="text-[#2D4A2D] text-base font-semibold tracking-tight">
-                        Intervene
+                        Pause & Intent
                     </Text>
                 </View>
-                <TouchableOpacity onPress={fetchDashboard}>
+                <TouchableOpacity onPress={loadApps}>
                     <Feather name="refresh-cw" size={20} color="#2D4A2D" />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
-                {/* Welcome */}
-                <View className="px-5 pt-6 pb-4 flex-row items-start justify-between">
-                    <View className="flex-1">
-                        <Text className="text-[#1C1C1C] text-4xl font-light leading-tight">
-                            Welcome back{'\n'}to your{' '}
-                            <Text className="italic font-light">quiet</Text>
+            <ScrollView showsVerticalScrollIndicator={false} className="flex-1 px-5">
+                <View className="mt-6 mb-2">
+                    <View className="flex-row items-baseline justify-between">
+                        <Text className="text-[#1C1C1C] text-3xl font-bold">Select Application</Text>
+                        <Text className="text-[#9A9A9A] text-xs tracking-widest">DIRECTORY</Text>
+                    </View>
+                    <Text className="text-[#6B6B6B] text-sm mt-1 leading-relaxed">
+                        Choose the spaces where you wish to{'\n'}cultivate more intentional digital presence.
+                    </Text>
+                </View>
+
+                {/* Search */}
+                <View className="bg-[#E8E5DF] rounded-2xl flex-row items-center px-4 py-3 mt-5 mb-6">
+                    <Feather name="sliders" size={18} color="#9A9A9A" />
+                    <TextInput
+                        value={search}
+                        onChangeText={setSearch}
+                        placeholder="Filter your applications..."
+                        placeholderTextColor="#9A9A9A"
+                        className="flex-1 ml-3 text-[#1C1C1C] text-sm"
+                    />
+                    {search.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearch('')}>
+                            <Ionicons name="close-circle" size={18} color="#9A9A9A" />
+                        </TouchableOpacity>
+                    )}
+                </View>
+
+                {loading && <ActivityIndicator color="#2D4A2D" style={{ marginTop: 32 }} />}
+                {error && <Text className="text-[#C0392B] text-sm text-center mt-8">{error}</Text>}
+
+                {/* Used apps section */}
+                {!loading && filteredUsed.length > 0 && (
+                    <>
+                        <Text className="text-[#9A9A9A] text-xs tracking-widest mb-3">
+                            RECENTLY USED
                         </Text>
-                        <Text className="text-[#1C1C1C] text-4xl font-light">space.</Text>
-                    </View>
-                    <View className="items-end pt-2">
-                        <Text className="text-[#6B6B6B] text-xs tracking-widest">DAY 14</Text>
-                        <Text className="text-[#6B6B6B] text-xs tracking-wide">Mindful</Text>
-                        <Text className="text-[#6B6B6B] text-xs tracking-wide">Streak</Text>
-                    </View>
-                </View>
+                        {filteredUsed.map(renderApp)}
+                    </>
+                )}
 
-                {/* Hero Image Card */}
-                <View className="mx-5 rounded-2xl overflow-hidden h-44">
-                    <View className="absolute inset-0 bg-[#C4A882]" />
-                    <View className="absolute bottom-0 left-0 right-0 h-24 bg-[#8B6914] opacity-40 rounded-t-[60px]" />
-                    <View className="absolute bottom-0 left-0 right-0 h-16 bg-[#5C3D11] opacity-60 rounded-t-[80px]" />
-                    <View className="absolute bottom-0 left-0 right-0 h-10 bg-[#2D1810] opacity-80 rounded-t-[100px]" />
-                    <View className="absolute bottom-4 left-4">
-                        <Text className="text-white/70 text-xs tracking-widest mb-1">CURRENT FOCUS</Text>
-                        <Text className="text-white text-2xl font-semibold">Digital Silence</Text>
-                    </View>
-                </View>
+                {/* All installed apps section */}
+                {!loading && filteredUnused.length > 0 && (
+                    <>
+                        <Text className="text-[#9A9A9A] text-xs tracking-widest mb-3 mt-2">
+                            ALL APPS
+                        </Text>
+                        {filteredUnused.map(renderApp)}
+                    </>
+                )}
 
-                {/* Today's Pulse */}
-                <View className="px-5 mt-6">
-                    <View className="flex-row items-center justify-between mb-3">
-                        <Text className="text-[#1C1C1C] text-xl font-semibold">Today's Pulse</Text>
-                        {!loading && (
-                            <View className="bg-[#E8F0E8] px-3 py-1 rounded-full">
-                                <Text style={{ color: pctColor }} className="text-xs font-medium">
-                                    {pctLabel}
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-
-                    {/* Screen Intent Card */}
-                    <View className="bg-white rounded-2xl p-4 mb-3">
-                        <Text className="text-[#8A8A8A] text-xs tracking-widest mb-2">SCREEN INTENT</Text>
-                        {loading ? (
-                            <ActivityIndicator color="#2D4A2D" style={{ alignSelf: 'flex-start', marginVertical: 8 }} />
-                        ) : (
-                            <Text className="text-[#1C1C1C] text-5xl font-light">
-                                {formatMs(screenTime)}
-                            </Text>
-                        )}
-                        {error ? (
-                            <Text className="text-[#C0392B] text-xs mt-2">{error} — tap ↻ to retry</Text>
-                        ) : (
-                            <View className="flex-row items-center justify-between mt-2">
-                                <Text className="text-[#6B6B6B] text-sm">
-                                    You've reached for your{'\n'}device 45 times today.
-                                </Text>
-                                <Ionicons name="bar-chart-outline" size={24} color="#C8C8C8" />
-                            </View>
-                        )}
-                    </View>
-
-                    {/* Bottom Stats Row */}
-                    <View className="flex-row gap-3 mb-3">
-                        <View className="flex-1 bg-[#EBEBEB] rounded-2xl p-4">
-                            <View className="w-8 h-8 rounded-full bg-[#D0D0D0] items-center justify-center mb-3">
-                                <Ionicons name="remove" size={18} color="#555" />
-                            </View>
-                            <Text className="text-[#8A8A8A] text-xs tracking-widest mb-1">
-                                FRICTION{'\n'}ACTIVE
-                            </Text>
-                            {loading ? (
-                                <ActivityIndicator color="#555" size="small" />
-                            ) : (
-                                <Text className="text-[#1C1C1C] text-2xl font-semibold">
-                                    {frictionApps} Apps
-                                </Text>
-                            )}
-                        </View>
-                        <View className="flex-1 bg-[#F5E6D0] rounded-2xl p-4">
-                            <View className="w-8 h-8 rounded-full bg-[#E8C898] items-center justify-center mb-3">
-                                <MaterialCommunityIcons name="head-cog-outline" size={18} color="#7A5C2E" />
-                            </View>
-                            <Text className="text-[#8A8A8A] text-xs tracking-widest mb-1">
-                                RESISTED URGES
-                            </Text>
-                            {loading ? (
-                                <ActivityIndicator color="#7A5C2E" size="small" />
-                            ) : (
-                                <Text className="text-[#1C1C1C] text-2xl font-semibold">
-                                    {resisted} times
-                                </Text>
-                            )}
-                        </View>
-                    </View>
-                </View>
-
-                {/* Design Your Boundaries CTA */}
-                <View className="mx-5 mt-2 bg-[#1C2B1C] rounded-3xl p-6">
-                    <Text className="text-white text-2xl font-semibold mb-2">
-                        Design your boundaries.
+                {/* No results */}
+                {!loading && filteredUsed.length === 0 && filteredUnused.length === 0 && !error && (
+                    <Text className="text-[#9A9A9A] text-sm text-center mt-12">
+                        No apps match "{search}"
                     </Text>
-                    <Text className="text-white/60 text-sm leading-relaxed mb-5">
-                        Introduce intentional pauses to your most distracting apps. Choose between
-                        breathwork, reflection, or simple delays.
-                    </Text>
-                    <TouchableOpacity
-                        className="bg-[#2D4A2D] rounded-full py-3 px-6 flex-row items-center justify-center gap-2"
-                        onPress={() => router.push('/interventions')}
-                    >
-                        <Text className="text-white text-base font-medium">Configure Interventions</Text>
-                        <Text className="text-white text-base">→</Text>
-                    </TouchableOpacity>
-                </View>
+                )}
 
-                {/* Reflections */}
-                <View className="px-5 mt-6 mb-4">
-                    <Text className="text-[#1C1C1C] text-xl font-semibold mb-4">Reflections</Text>
-
-                    <View className="flex-row items-start gap-3 mb-5">
-                        <View className="w-10 h-10 bg-[#EBEBEB] rounded-xl items-center justify-center">
-                            <MaterialCommunityIcons name="meditation" size={20} color="#555" />
-                        </View>
-                        <View className="flex-1">
-                            <Text className="text-[#1C1C1C] text-sm font-semibold mb-1">
-                                10:45 AM — Mindfulness Gap
-                            </Text>
-                            <Text className="text-[#6B6B6B] text-sm leading-relaxed">
-                                You paused for 30 seconds before opening Instagram. Decided to read a
-                                book instead.
-                            </Text>
-                        </View>
-                    </View>
-
-                    <View className="flex-row items-start gap-3">
-                        <View className="w-10 h-10 bg-[#EBEBEB] rounded-xl items-center justify-center">
-                            <Ionicons name="time-outline" size={20} color="#555" />
-                        </View>
-                        <View className="flex-1">
-                            <Text className="text-[#1C1C1C] text-sm font-semibold mb-1">
-                                08:12 AM — Wake Up Routine
-                            </Text>
-                            <Text className="text-[#6B6B6B] text-sm leading-relaxed">
-                                First device interaction occurred 45 minutes after waking up. Peaceful
-                                start.
-                            </Text>
-                        </View>
-                    </View>
-                </View>
-
-                <View className="h-24" />
+                <View className="h-32" />
             </ScrollView>
-
-            {/* Floating pause button */}
-            <View className="absolute bottom-20 right-5">
-                <TouchableOpacity className="w-12 h-12 bg-[#1C2B1C] rounded-full items-center justify-center shadow-lg">
-                    <Ionicons name="pause" size={20} color="white" />
-                </TouchableOpacity>
-            </View>
 
             <NavBar />
         </View>

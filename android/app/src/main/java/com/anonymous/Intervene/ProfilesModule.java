@@ -52,32 +52,41 @@ public class ProfilesModule extends ReactContextBaseJavaModule {
     public void getAllApps(Promise promise) {
         try {
             PackageManager pm = getReactApplicationContext().getPackageManager();
-            UsageStatsManager usm = (UsageStatsManager)
-                    getReactApplicationContext().getSystemService(Context.USAGE_STATS_SERVICE);
+            UsageStatsManager usm = (UsageStatsManager) getReactApplicationContext().getSystemService(Context.USAGE_STATS_SERVICE);
 
-            // Get used apps from last 30 days
-            long now   = System.currentTimeMillis();
-            long month = now - 30L * 24 * 60 * 60 * 1000;
-            Map<String, UsageStats> usageMap = usm.queryAndAggregateUsageStats(month, now);
+            // Get used apps from today only
+            Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            long startOfDay = cal.getTimeInMillis();
+            long now = System.currentTimeMillis();
+            Map<String, UsageStats> usageMap = usm.queryAndAggregateUsageStats(startOfDay, now);
 
             // Build used apps list sorted by usage
             List<WritableMap> usedApps    = new ArrayList<>();
             List<WritableMap> unusedApps  = new ArrayList<>();
 
-            List<ApplicationInfo> installed = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+            List<ApplicationInfo> installed = pm.getInstalledApplications(0);
             for (ApplicationInfo info : installed) {
-                if ((info.flags & ApplicationInfo.FLAG_SYSTEM) != 0) continue;
+//                Log.d(TAG, "app name: " + pm.getApplicationLabel(info).toString());
+                boolean isSystem = (info.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
+                boolean isUpdated = (info.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0;
+
+                if (isSystem && !isUpdated) continue;
                 if (info.packageName.equals(getReactApplicationContext().getPackageName())) continue;
 
                 String appName = pm.getApplicationLabel(info).toString();
-                long usedMs = usageMap.containsKey(info.packageName)
-                        ? usageMap.get(info.packageName).getTotalTimeInForeground() : 0;
+                long usedMs = usageMap.containsKey(info.packageName) ? usageMap.get(info.packageName).getTotalTimeInForeground() : 0;
 
                 WritableMap app = Arguments.createMap();
                 app.putString("packageName", info.packageName);
                 app.putString("appName", appName);
                 app.putDouble("usedMs", usedMs);
                 app.putBoolean("hasProfile", hasProfile(info.packageName));
+//                DEBUGGING ONLY
+                Log.d(TAG, "App name: " + appName + " usedMs: " + usedMs + "package name: " + info.packageName);
 
                 if (usedMs > 0) usedApps.add(app);
                 else unusedApps.add(app);

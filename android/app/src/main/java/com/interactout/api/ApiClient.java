@@ -14,17 +14,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+//
+//*
+// * HTTP client connecting Android AccessibilityService → Spring Boot backend.
+// *
+// * All calls are synchronous — run them off the main thread
+// * (e.g. in an Executor or coroutine launched from the service).
+// *
+// * BASE_URL:
+// *   Android Emulator → http://10.0.2.2:8080/api
+// *   Real device (same WiFi) → http://YOUR_LAN_IP:8080/api
+//
 
-/**
- * HTTP client connecting Android AccessibilityService → Spring Boot backend.
- *
- * All calls are synchronous — run them off the main thread
- * (e.g. in an Executor or coroutine launched from the service).
- *
- * BASE_URL:
- *   Android Emulator → http://10.0.2.2:8080/api
- *   Real device (same WiFi) → http://YOUR_LAN_IP:8080/api
- */
 public class ApiClient {
 
     private static final String TAG = "InteractOut.ApiClient";
@@ -51,7 +52,7 @@ public class ApiClient {
 
     // ── Profiles ───────────────────────────────────────────────────────────────
 
-    /** Fetch all active (enabled=true) profiles. Called on service startup. */
+
     public List<AppProfile> fetchActiveProfiles() {
         try {
             Request req = new Request.Builder().url(BASE_URL + "/profiles/active").build();
@@ -66,7 +67,6 @@ public class ApiClient {
         }
     }
 
-    /** Fetch single profile by package name. */
     public AppProfile fetchProfile(String packageName) {
         try {
             Request req = new Request.Builder()
@@ -83,10 +83,7 @@ public class ApiClient {
 
     // ── Usage ──────────────────────────────────────────────────────────────────
 
-    /**
-     * Returns { usedMs, limitMs, bypassActive }.
-     * Android checks this before each app open to compute dynamic intensity.
-     */
+
     public Map<String, Object> getUsageToday(String packageName) {
         try {
             Request req = new Request.Builder()
@@ -102,7 +99,6 @@ public class ApiClient {
         }
     }
 
-    /** Report session end. Call when foreground app changes away. */
     public void reportSession(UsageSession session) {
         try {
             String json = gson.toJson(session);
@@ -115,7 +111,7 @@ public class ApiClient {
         }
     }
 
-    /** Increment resisted urges counter. */
+
     public void reportResistedUrge(String packageName) {
         try {
             Map<String, String> payload = new HashMap<>();

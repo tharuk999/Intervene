@@ -70,8 +70,6 @@ public class MyAccessibilityService extends AccessibilityService {
         // If you only want this service to work with specific apps, set their
         // package names here. Otherwise, when the service is activated, it listens
         // to events from all apps.
-//        info.packageNames = new String[]
-//                {"com.example.android.myFirstApp", "com.example.android.mySecondApp"};
 
         // Set the type of feedback your service provides.
         info.feedbackType = AccessibilityServiceInfo.FEEDBACK_SPOKEN;

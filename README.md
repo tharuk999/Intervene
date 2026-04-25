@@ -1,286 +1,195 @@
-# Setup
+# Intervene
 
-   ```bash
-   .\start-backend.ps1  # run backend
-   
-   npm install          # install dependencies 
-   
-   npx expo start       # run frontend
-   # OR 
-   npx expo run:android # run frontend through android emulator
-   ```
-
-# Intervene Frontend
-
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
-
-   
-# Intervene Backend
-
-Java backend for the Intervene app, implementing all 8 gesture intervention techniques
-from the CHI '24 paper "InteractOut: Leveraging Interaction Proxies as Input Manipulation
-Strategies for Reducing Smartphone Overuse".
+> A research-backed Android application that introduces intentional friction into habitual social media use, built on the **InteractOut** framework.
 
 ---
 
-## Architecture Overview
+## Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         REACT NATIVE (Expo)                     │
-│   index.tsx · interventions.tsx · InterventionsSetupScreen.tsx  │
-│                     useInterveneApi.ts (hook)                 │
-└──────────────────────┬──────────────────────────────────────────┘
-                       │  HTTP REST  (port 8080)
-┌──────────────────────▼──────────────────────────────────────────┐
-│                    SPRING BOOT BACKEND                          │
-│  ProfileController  ·  UsageController                         │
-│  ProfileService     ·  UsageService                            │
-│  AppProfileEntity   ·  UsageSessionEntity                      │
-│  H2 Database (dev)  →  MySQL (prod)                            │
-└──────────────────────┬──────────────────────────────────────────┘
-                       │  HTTP REST (polling + reporting)
-┌──────────────────────▼──────────────────────────────────────────┐
-│               ANDROID ACCESSIBILITY SERVICE                     │
-│  InterveneAccessibilityService (foreground app detection)    │
-│  GestureInterceptorService       (proxy layer = Figure 3)      │
-│  BypassNotificationManager       (Figure 4 bypass menu)        │
-│  ApiClient                       (OkHttp → Spring Boot)        │
-└─────────────────────────────────────────────────────────────────┘
-         ↕ dispatchGesture() API
-    Real apps (Instagram, TikTok, YouTube, etc.)
-```
+**Intervene** is a digital wellbeing app that applies evidence-based *interaction-level* friction to reduce mindless phone use. Rather than blocking apps outright, Intervene subtly modifies how you physically interact with them, delaying taps, reversing swipes, requiring multi-finger gestures, making habitual scrolling conscious and effortful.
+
+The app is grounded in the **InteractOut** research paper, which demonstrates that micro-friction interventions at the gesture layer are more effective at promoting reflective pausing than blunt time-limit blockers.
 
 ---
 
-## File Structure
+## Tech Stack
 
-Place files exactly as shown. Backend is fully separate from the Expo frontend.
-
-```
-Intervene/
-│
-├── app/                          ← EXISTING: Expo React Native frontend
-│   ├── index.tsx
-│   ├── interventions.tsx
-│   ├── intervention-setup.tsx
-│   ├── settings.tsx
-│   └── _layout.tsx
-│
-├── components/                   ← EXISTING: React Native components
-│   ├── navbar.tsx
-│   ├── InterventionsSetupScreen.tsx
-│   └── SettingsScreen.tsx
-│
-├── hooks/                        ← NEW: Add this hook
-│   └── useInterveneApi.ts      ← connects React Native → Spring Boot
-│
-├── backend/          ← NEW: entire backend lives here
-│   │
-│   ├── springboot/               ← Spring Boot REST API
-│   │   ├── pom.xml
-│   │   └── src/main/
-│   │       ├── java/com/interactout/
-│   │       │   ├── InteractOutApplication.java
-│   │       │   ├── controller/
-│   │       │   │   ├── ProfileController.java   GET/POST/PUT/DELETE /api/profiles
-│   │       │   │   └── UsageController.java     GET/POST /api/usage/*
-│   │       │   ├── service/
-│   │       │   │   ├── ProfileService.java      CRUD + intervention logic
-│   │       │   │   └── UsageService.java        usage tracking, bypass, dashboard
-│   │       │   ├── model/
-│   │       │   │   ├── InterventionType.java    enum: all 8 types
-│   │       │   │   ├── AppProfileEntity.java    JPA entity (app_profiles table)
-│   │       │   │   ├── InterventionEntity.java  JPA entity (interventions table)
-│   │       │   │   └── UsageSessionEntity.java  JPA entity (usage_sessions table)
-│   │       │   └── repository/
-│   │       │       ├── AppProfileRepository.java
-│   │       │       └── UsageSessionRepository.java
-│   │       └── resources/
-│   │           └── application.properties
-│   │
-│   └── android/                  ← Android native module (Accessibility Service)
-│       └── app/src/main/
-│           ├── AndroidManifest/
-│           │   └── AndroidManifest.xml         permissions + service declarations
-│           ├── res/xml/
-│           │   └── accessibility_service_config.xml
-│           └── java/com/interactout/
-│               ├── service/
-│               │   ├── InteractOutAccessibilityService.java  ← CORE: proxy layer
-│               │   ├── GestureInterceptorService.java        ← all 8 interventions
-│               │   └── BypassNotificationManager.java        ← Figure 4 bypass menu
-│               ├── api/
-│               │   └── ApiClient.java                        ← OkHttp → Spring Boot
-│               └── model/
-│                   ├── InterventionType.java   (mirrors Spring Boot enum)
-│                   ├── InterventionConfig.java
-│                   ├── AppProfile.java
-│                   └── UsageSession.java
-```
+| Layer | Technology |
+|---|---|
+| Mobile Frontend | React Native (Expo) |
+| Styling | NativeWind (Tailwind CSS for React Native) |
+| Navigation | Expo Router (file-based) |
+| Local Storage | AsyncStorage |
+| Background Sync | Expo Background Task + Task Manager |
+| Native Bridge | Android NativeModules (`ProfilesModule`) |
 
 ---
 
-## REST API Reference
+## Features
 
-All endpoints at `http://localhost:8080/api`
-
-### Profiles
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET    | `/profiles` | All profiles (Android polls on startup) |
-| GET    | `/profiles/active` | Only enabled profiles |
-| GET    | `/profiles/{pkg}` | Single profile |
-| POST   | `/profiles` | Create / update profile from React Native UI |
-| PUT    | `/profiles/{pkg}/enabled` | Toggle app on/off |
-| PUT    | `/profiles/{pkg}/interventions/{type}/intensity` | Update slider value |
-| DELETE | `/profiles/{pkg}` | Remove profile |
-
-### Usage & Dashboard
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST   | `/usage/session` | Report session end (Android → backend) |
-| POST   | `/usage/resisted` | Record resisted urge |
-| GET    | `/usage/today/{pkg}` | usedMs + limitMs (Android checks before intervening) |
-| POST   | `/usage/bypass` | Grant 1-min or 15-min bypass |
-| GET    | `/usage/bypass/{pkg}` | Check if bypass is active |
-| GET    | `/usage/dashboard` | All home screen data in one call |
-| GET    | `/usage/history/weekly` | Last 7 days for charts |
+- **App Directory** - Lists all installed apps with today's usage time; highlights apps with active friction profiles
+- **Intervention Setup** - Per-app configuration of 8 gesture-level interventions with adjustable intensity sliders
+- **Friction Types:**
+    - `TAP_DELAY` - Adds a configurable delay before a tap registers
+    - `TAP_PROLONG` - Requires holding for a set duration to trigger
+    - `TAP_SHIFT` - Offsets the registered tap location
+    - `TAP_DOUBLE` - Requires double-tap for a single interaction
+    - `SWIPE_DELAY` - Introduces pauses between consecutive swipes
+    - `SWIPE_DECELERATE` - Increases scrolling friction at high velocity
+    - `SWIPE_REVERSE` - Reverses swipe direction
+    - `SWIPE_MULTI_FINGER` - Requires two-finger scrolling
+- **Intention Summary** - Live friction coefficient display per app profile
+- **Usage Dashboard** - Daily screen time, resisted urges, and active friction app count
+- **Settings** - Appearance, font size, mindful alerts, focus blocks, and privacy controls
+- **Background Sync** - Queued usage sessions synced to the backend via background task
 
 ---
 
-## The 8 Interventions (from paper)
+## Prerequisites
 
-| InterventionType | Paper Name | What it does | Intensity mapping |
-|-----------------|-----------|--------------|------------------|
-| `TAP_DELAY` | Tap/Swipe Delay | Postpone tap dispatch | 0→0ms, 1→800ms |
-| `TAP_PROLONG` | Tap Prolong | Require long-press to register | 0→0ms, 1→1500ms threshold |
-| `TAP_SHIFT` | Tap Shift | Offset tap location by (dx,dy) | 0→0px, 1→60px |
-| `TAP_DOUBLE` | Tap Double | Require double-tap for single effect | boolean |
-| `SWIPE_DELAY` | Swipe Delay | Postpone swipe dispatch | 0→0ms, 1→600ms |
-| `SWIPE_DECELERATE` | Swipe Deceleration | Multiply swipe duration | 0→1x, 1→4x |
-| `SWIPE_REVERSE` | Swipe Reverse | Reverse trajectory direction | boolean |
-| `SWIPE_MULTI_FINGER` | Swipe Multiple Fingers | Require N fingers | 0→2, 1→4 fingers |
+Before running the app, ensure the following are installed:
+
+- [Node.js](https://nodejs.org/) (v18 or later recommended)
+- [Android Studio](https://developer.android.com/studio) with an AVD (Android Virtual Device) configured
+- [Java JDK 17+](https://adoptium.net/) (required by the Android build toolchain)
+- Android Emulator running **API 26+**
+
+> **Note:** The app targets Android only. The native modules and accessibility services are Android-specific and will not function on iOS or web.
 
 ---
 
-## Setup Instructions (Windows PowerShell)
+## Getting Started
 
-### 1. Start the Spring Boot backend
+### 1. Clone the repository
 
 ```powershell
-cd interactout-backend\springboot
-.\mvnw.cmd spring-boot:run
-# Server starts at http://localhost:8080
-# H2 console: http://localhost:8080/h2-console
+git clone <repository-url>
+cd intervene
 ```
 
-If no mvnw exists yet:
-```powershell
-# Install Maven first, then:
-mvn spring-boot:run
-```
-
-### 2. Integrate the React Native hook
-
-Copy `hooks/useInteractOutApi.ts` into your Expo project's `hooks/` folder.
-
-Use in any screen:
-```tsx
-import { useInteractOutApi } from '@/hooks/useInteractOutApi';
-
-export default function HomeScreen() {
-  const { dashboard, loading } = useInteractOutApi();
-
-  // dashboard.totalScreenTimeMs  → "Screen Intent" card
-  // dashboard.resistedUrges      → "RESISTED URGES" card
-  // dashboard.activeFrictionApps → "FRICTION ACTIVE" card
-  // dashboard.percentChangeVsYesterday → "-22% vs yesterday" badge
-}
-```
-
-### 3. Android Accessibility Service setup
-
-The Android module must be integrated into your Expo project as a **bare workflow** or
-**native module**. Steps:
+### 2. Install dependencies
 
 ```powershell
-# Eject to bare workflow (if not already)
-npx expo prebuild
+npm install
+```
 
-# Copy android files into:
-# android/app/src/main/java/com/interactout/
-# android/app/src/main/res/xml/accessibility_service_config.xml
-# Merge AndroidManifest.xml entries into android/app/src/main/AndroidManifest.xml
+### 3. Launch the app on the Android emulator
 
-# Add OkHttp + Gson to android/app/build.gradle:
-# implementation 'com.squareup.okhttp3:okhttp:4.12.0'
-# implementation 'com.google.code.gson:gson:2.10.1'
+Start your Android Studio emulator, then run:
 
-# Build and run
+```powershell
 npx expo run:android
 ```
 
-After install, user must enable the service:
-**Settings → Accessibility → Downloaded apps → InteractOut → Enable**
-
-### 4. Real device vs emulator
-
-| Scenario | BASE_URL in ApiClient.java and useInteractOutApi.ts |
-|----------|------------------------------------------------------|
-| Android Emulator | `http://10.0.2.2:8080/api` |
-| Real device (same WiFi) | `http://YOUR_PC_LAN_IP:8080/api` |
-| Production | `https://your-domain.com/api` |
-
-Find your LAN IP: `ipconfig` → IPv4 Address under your WiFi adapter.
+Expo will build the native Android project and deploy it to the running emulator.
 
 ---
 
-## Dynamic Intervention Intensity (Paper Section 3.2)
-
-The paper describes interventions that **ramp up gradually** as usage approaches the limit.
-This is implemented in `InteractOutAccessibilityService.activateForPackage()`:
+## Project Structure
 
 ```
-intensity = usedMs / limitMs   (0.0 at session start → 1.0 at limit)
+├── app/
+│   ├── _layout.tsx              # Root layout + background task registration
+│   ├── index.tsx                # App directory screen (home)
+│   ├── interventions.tsx        # Interventions list screen
+│   ├── intervention-setup.tsx   # Re-export for Expo Router
+│   ├── settings.tsx             # Re-export for Expo Router
+│   └── global.css               # Tailwind base imports
+│
+├── components/
+│   ├── InterventionsSetupScreen.tsx   # Per-app friction configuration UI
+│   ├── SettingsScreen.tsx             # App settings UI
+│   ├── navbar.tsx                     # Bottom navigation bar
+│   ├── themed-text.tsx                # Theme-aware Text component
+│   ├── themed-view.tsx                # Theme-aware View component
+│   └── ...
+│
+├── hooks/
+│   ├── useInterveneApi.ts        # REST API client for all backend endpoints
+│   ├── use-color-scheme.ts       # Native color scheme hook
+│   ├── use-color-scheme.web.ts   # Web-safe color scheme hook (hydration-aware)
+│   └── use-theme-color.ts        # Theme color resolver
+│
+└── android/                      # Native Android project (managed by Expo)
+    └── app/src/main/java/
+        ├── com/anonymous/Intervene/
+        │   ├── MainActivity.kt                  # React Native activity entry point
+        │   ├── MainApplication.kt               # Package registration
+        │   ├── ProfilesModule.java              # NativeModule: app list + profile CRUD
+        │   ├── ProfilesPackage.java             # Package wrapper for ProfilesModule
+        │   ├── UsageStatsModule.java            # NativeModule: usage stats + dashboard
+        │   ├── UsageStatsPackage.java           # Package wrapper for UsageStatsModule
+        │   ├── AccessibilityModule.java         # NativeModule: accessibility service control
+        │   ├── AccessibilityPackage.java        # Package wrapper for AccessibilityModule
+        │   └── MyAccessibilityService.java      # Accessibility service (event logging)
+        │
+        └── com/interactout/
+            ├── model/
+            │   ├── AppProfile.java              # Profile data model
+            │   ├── InterventionConfig.java      # Per-intervention config model
+            │   ├── InterventionType.java        # Enum of all 8 intervention types
+            │   └── UsageSession.java            # Usage session data model
+            ├── api/
+            │   └── ApiClient.java
+            └── service/
+                ├── InteractOutAccessibilityService.java   # Core a11y service: app tracking + intervention activation
+                ├── GestureInterceptorService.java         # Gesture proxy: applies friction to taps/swipes
+                └── BypassNotificationManager.java         # Bypass notification + broadcast receiver
 ```
-
-This intensity is passed to `GestureInterceptorService.applyInterventionsWithIntensity()`,
-which scales every intervention parameter proportionally. Users notice very subtle friction
-at first, increasing as they approach their set limit.
 
 ---
 
-## Database Schema (auto-created by Hibernate)
+## Native Android Layer
 
-```sql
--- app_profiles
-CREATE TABLE app_profiles (
-    package_name  VARCHAR(255) PRIMARY KEY,
-    app_name      VARCHAR(255),
-    enabled       BOOLEAN,
-    daily_limit_ms BIGINT
-);
+The `android/` directory contains the full native Android project built alongside the React Native frontend. It is **not** auto-generated boilerplate, it holds the core intervention logic that makes Intervene work.
 
--- interventions
-CREATE TABLE interventions (
-    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
-    package_name VARCHAR(255) REFERENCES app_profiles(package_name),
-    type         VARCHAR(50),   -- InterventionType enum name
-    enabled      BOOLEAN,
-    intensity    FLOAT
-);
+### NativeModules (JS <-> Android bridge)
 
--- usage_sessions
-CREATE TABLE usage_sessions (
-    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
-    package_name   VARCHAR(255),
-    duration_ms    BIGINT,
-    timestamp_ms   BIGINT,
-    session_date   DATE,
-    resisted_urges INT,
-    INDEX idx_pkg_date (package_name, session_date)
-);
-```
+Three custom `ReactContextBaseJavaModule` classes expose Android APIs to the JavaScript layer:
+
+| Module | JS Access | Responsibilities |
+|---|---|---|
+| `ProfilesModule` | `NativeModules.ProfilesModule` | Lists installed apps with usage time, loads/saves friction profiles via `SharedPreferences` |
+| `UsageStatsModule` | `NativeModules.UsageStatsModule` | Reads `UsageStatsManager`, builds dashboard data, checks/opens accessibility permissions |
+| `AccessibilityModule` | `NativeModules.AccessibilityModule` | Checks accessibility service status, opens accessibility settings |
+
+All three modules require the full native Android build (`npx expo run:android`) and will **not** work with Expo Go.
+
+### Data Models (`com.interactout.model`)
+
+- `AppProfile` - Package name, app name, enabled state, daily limit, and list of `InterventionConfig`
+- `InterventionConfig` - Intervention type, enabled flag, and intensity (0.0–1.0)
+- `InterventionType` - Enum of all 8 intervention types
+- `UsageSession` - Package name, duration, and timestamp for session reporting
+
+### Permissions Required
+
+The following permissions must be granted by the user at runtime or via system settings:
+
+| Permission | Purpose |
+|---|---|
+| `PACKAGE_USAGE_STATS` | Read per-app usage time via `UsageStatsManager` |
+| `BIND_ACCESSIBILITY_SERVICE` | Run `InteractOutAccessibilityService` and `GestureInterceptorService` |
+| `SYSTEM_ALERT_WINDOW` | Display overlay prompts (bypass flow) |
+
+---
+
+## Research Foundation
+
+Intervene is based on **InteractOut**, a research framework exploring interaction-level interventions as a means of reducing problematic smartphone use. Unlike screen time blockers, InteractOut introduces friction at the gesture layer, making the physical act of scrolling and tapping slightly harder, to prompt conscious reflection without outright restriction.
+
+Key findings from the paper inform the intervention types and intensity calibration implemented in this app.
+
+---
+
+## Known Limitations
+
+- Android only, native module is not cross-platform
+- Real device usage requires manually updating the `BASE_URL` constant to the host machine's LAN IP
+- Background sync depends on Android's background task scheduling and may be deferred by the OS under battery optimization
+
+---
+
+## License
+
+This project was developed for academic research purposes in conjunction with the InteractOut research paper. See `LICENSE` for details.

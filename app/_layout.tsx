@@ -1,24 +1,32 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+// app/_layout.tsx
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import * as TaskManager from 'expo-task-manager';
+import * as BackgroundTask from 'expo-background-task';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import './global.css';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+// ── DEFINE TASK HERE (global scope, runs before React) ──────────────────────
+TaskManager.defineTask('SYNC_USAGE', async () => {
+    try {
+        const sessions = await AsyncStorage.getItem('pending_sessions');
+        if (sessions) {
+            // Call your backend
+            const response = await fetch('http://10.0.2.2:8080/api/usage/session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: sessions,
+            });
+            if (response.ok) {
+                await AsyncStorage.removeItem('pending_sessions');
+            }
+        }
+        return BackgroundTask.BackgroundTaskResult.Success;
+    } catch (error) {
+        console.error('Background sync failed:', error);
+        return BackgroundTask.BackgroundTaskResult.Failed;
+    }
+});
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+    return <Stack screenOptions={{ headerShown: false }} />;
 }

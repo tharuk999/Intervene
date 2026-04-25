@@ -60,7 +60,7 @@ export default function InterventionsScreen() {
         <View className="flex-row items-center justify-between px-5 pt-12 pb-2">
           <View className="flex-row items-center gap-2">
             <MaterialCommunityIcons name="leaf" size={20} color="#2D4A2D" />
-            <Text className="text-[#2D4A2D] text-base font-semibold tracking-tight">Pause & Intent</Text>
+            <Text className="text-[#2D4A2D] text-base font-semibold tracking-tight">Intervene</Text>
           </View>
           <View className="flex-row gap-4">
             <TouchableOpacity><Feather name="search" size={20} color="#2D4A2D" /></TouchableOpacity>

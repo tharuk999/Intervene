@@ -23,7 +23,7 @@ export default function SettingsScreen({ navigation }: any) {
       <View className="flex-row items-center px-5 pt-12 pb-2">
         <MaterialCommunityIcons name="leaf" size={20} color="#2D4A2D" />
         <Text className="text-[#2D4A2D] text-base font-semibold tracking-tight ml-2">
-          Pause & Intent
+          Intervene
         </Text>
       </View>
 
@@ -139,7 +139,7 @@ export default function SettingsScreen({ navigation }: any) {
 
         {/* Version */}
         <Text className="text-center text-[#B0B0B0] text-xs tracking-widest mb-8">
-          PAUSE & INTENT V2.4.0
+          Intervene V2.4.0
         </Text>
 
         <View className="h-20" />

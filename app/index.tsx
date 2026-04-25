@@ -135,7 +135,7 @@ export default function InterventionsScreen() {
                 <View className="flex-row items-center gap-2">
                     <MaterialCommunityIcons name="leaf" size={20} color="#2D4A2D" />
                     <Text className="text-[#2D4A2D] text-base font-semibold tracking-tight">
-                        Pause & Intent
+                        Intervene
                     </Text>
                 </View>
                 <TouchableOpacity onPress={loadApps}>

@@ -34,7 +34,7 @@ export function NavBar() {
 
         return (
           <TouchableOpacity
-            key={item.route}
+            key={String(item.route)}
             className="items-center"
             onPress={() => router.push(item.route)}
             activeOpacity={0.8}

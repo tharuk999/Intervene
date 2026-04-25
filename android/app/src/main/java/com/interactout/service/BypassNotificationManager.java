@@ -72,7 +72,7 @@ public class BypassNotificationManager {
         Notification notification = new Notification.Builder(context, CHANNEL)
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle("Screen time limit — " + appName)
-            .setContentText(remaining + " · Pause & Intent")
+            .setContentText(remaining + " · Intervene")
             .setOngoing(true)
             .setPriority(Notification.PRIORITY_HIGH)
             .addAction(new Notification.Action.Builder(

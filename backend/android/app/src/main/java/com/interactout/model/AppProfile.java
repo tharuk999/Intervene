@@ -13,13 +13,12 @@ public class AppProfile {
     public AppProfile() {}
 
     /**
-     * Compute dynamic intensity (paper Section 3.2).
-     * Android calls this before each dispatchGesture to scale intervention strength.
-     * intensity = usedMs / dailyLimitMs, clamped 0.0–1.0
+     * MODIFIED: Always return max intensity (1.0) instead of dynamic scaling.
+     * Original paper logic: intensity = usedMs / dailyLimitMs
+     * New behavior: interventions always at full strength
      */
     public float computeDynamicIntensity(long usedMs) {
-        if (dailyLimitMs <= 0) return 1.0f;
-        return Math.max(0f, Math.min(1f, (float) usedMs / dailyLimitMs));
+        return 1.0f;
     }
 
     public String getPackageName() { return packageName; }

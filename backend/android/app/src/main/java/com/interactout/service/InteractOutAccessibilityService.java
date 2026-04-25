@@ -107,9 +107,9 @@ public class InteractOutAccessibilityService extends AccessibilityService {
             final String reportPkg = currentForegroundPkg;
             final long reportDuration = durationMs;
             executor.submit(() ->
-                ApiClient.get().reportSession(
-                    new UsageSession(reportPkg, reportDuration, System.currentTimeMillis())
-                )
+                    ApiClient.get().reportSession(
+                            new UsageSession(reportPkg, reportDuration, System.currentTimeMillis())
+                    )
             );
         }
 
@@ -128,12 +128,9 @@ public class InteractOutAccessibilityService extends AccessibilityService {
     // ── Intervention activation ────────────────────────────────────────────────
 
     /**
-     * Core flow (paper Section 3.2):
-     * 1. Look up profile for package
-     * 2. Fetch usedMs / limitMs from backend
-     * 3. Compute dynamic intensity = usedMs / limitMs
-     * 4. Pass to GestureInterceptorService
-     * 5. Show bypass notification if at/near limit
+     * MODIFIED: Always use max intensity (1.0) regardless of usage.
+     * Original logic fetched usedMs/limitMs from backend and computed dynamic scaling.
+     * Now we just activate interventions at full strength if profile enabled.
      */
     private void activateForPackage(String packageName) {
         AppProfile profile = profileCache.get(packageName);
@@ -151,11 +148,8 @@ public class InteractOutAccessibilityService extends AccessibilityService {
                     return;
                 }
 
-                Map<String, Object> usage = ApiClient.get().getUsageToday(packageName);
-                long usedMs  = usage.containsKey("usedMs")  ? ((Number) usage.get("usedMs")).longValue()  : 0;
-                long limitMs = usage.containsKey("limitMs") ? ((Number) usage.get("limitMs")).longValue() : 0;
-
-                float dynamicIntensity = profile.computeDynamicIntensity(usedMs);
+                // Always max intensity (1.0) — no dynamic scaling
+                float maxIntensity = 1.0f;
 
                 List<InterventionConfig> enabled = new ArrayList<>();
                 for (InterventionConfig cfg : profile.getInterventions()) {
@@ -163,16 +157,10 @@ public class InteractOutAccessibilityService extends AccessibilityService {
                 }
 
                 if (!enabled.isEmpty() && gestureService != null) {
-                    gestureService.activate(enabled, dynamicIntensity);
+                    gestureService.activate(enabled, maxIntensity);
                 }
 
-                // Bypass notification at 85% of limit (paper Figure 4)
-                if (limitMs > 0 && dynamicIntensity >= BYPASS_NOTIFICATION_THRESHOLD) {
-                    bypassManager.showBypassNotification(packageName, profile.getAppName(),
-                        usedMs, limitMs);
-                }
-
-                Log.d(TAG, "Activated for " + packageName + " intensity=" + dynamicIntensity);
+                Log.d(TAG, "Activated for " + packageName + " intensity=1.0 (MAX)");
             } catch (Exception e) {
                 Log.e(TAG, "activateForPackage error: " + e.getMessage());
             }
